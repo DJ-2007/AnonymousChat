@@ -949,6 +949,7 @@
       e.key === 'PrintScreen' || e.code === 'PrintScreen'
     ) {
       togglePrivacyBlur(true);
+      try { navigator.clipboard.writeText(''); } catch(err) {}
     }
   });
   
@@ -956,10 +957,20 @@
   document.addEventListener("keyup", (e) => {
     if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
       togglePrivacyBlur(true);
+      try { navigator.clipboard.writeText(''); } catch(err) {}
       // Auto-restore after 3 seconds since they don't necessarily leave the window
       setTimeout(() => togglePrivacyBlur(false), 3000);
     }
   });
+
+  // ── Mobile Keyboard Viewport Fix ──
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      document.body.style.height = window.visualViewport.height + "px";
+      scrollToBottom();
+    });
+    document.body.style.height = window.visualViewport.height + "px";
+  }
 
 
   window.addEventListener("beforeunload", (e) => {
