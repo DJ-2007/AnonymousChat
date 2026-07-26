@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AnonymousChat Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- Login Overlay -->
+  <div id="login-overlay" class="overlay">
+    <div class="login-card">
+      <div class="brand">
+        <svg width="40" height="40" viewBox="0 0 80 80" fill="none">
+          <defs><linearGradient id="lg-admin" x1="0" y1="0" x2="80" y2="80"><stop offset="0%" stop-color="#FF3366"/><stop offset="100%" stop-color="#FF9933"/></linearGradient></defs>
+          <rect x="16" y="34" width="48" height="36" rx="8" fill="url(#lg-admin)" opacity="0.9"/>
+          <path d="M28 34V26C28 19.4 33.4 14 40 14C46.6 14 52 19.4 52 26V34" stroke="url(#lg-admin)" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2>Admin Panel</h2>
+      <p class="subtitle">Enter the master password to access server controls.</p>
+      
+      <form id="login-form">
+        <input type="password" id="password" placeholder="Admin Password" required />
+        <button type="submit">Authenticate</button>
+      </form>
+      <div id="login-error" class="error-text hidden"></div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="dashboard hidden">
+    <header class="admin-header">
+      <div class="header-brand">
+        <svg width="24" height="24" viewBox="0 0 80 80" fill="none">
+          <rect x="16" y="34" width="48" height="36" rx="8" fill="#FF3366" opacity="0.9"/>
+          <path d="M28 34V26C28 19.4 33.4 14 40 14C46.6 14 52 19.4 52 26V34" stroke="#FF3366" stroke-width="4" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span>Admin Dashboard</span>
+      </div>
+      <div class="header-status">
+        <span class="pulse-dot"></span> Connected
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-title">Total Visitors (All Time)</div>
+          <div class="stat-value" style="color: #FF9933;" id="stat-total">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Users Online</div>
+          <div class="stat-value" id="stat-online">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Active Chats (Pairs)</div>
+          <div class="stat-value" id="stat-chats">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Users Searching</div>
+          <div class="stat-value" id="stat-searching">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-title">Idle Users</div>
+          <div class="stat-value" id="stat-idle">0</div>
+        </div>
+      </section>
+
+      <section class="controls-section">
+        <h2>Server Controls</h2>
+        
+        <div class="control-card">
+          <h3>Global Broadcast</h3>
+          <p>Send a system message to all currently connected users.</p>
+          <form id="broadcast-form" class="broadcast-form">
+            <input type="text" id="broadcast-msg" placeholder="e.g., Server restarting in 5 minutes..." required />
+            <button type="submit" class="btn-primary">Broadcast</button>
+          </form>
+        </div>
+
+        <div class="control-card danger-zone">
+          <h3>Danger Zone</h3>
+          <p>Instantly terminate all active user connections. Users will have to refresh to reconnect.</p>
+          <button id="btn-disconnect-all" class="btn-danger">Disconnect All Users</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
