@@ -1034,6 +1034,19 @@
 
   // Try to catch keyboard shortcuts before the OS freezes the screen
   document.addEventListener("keydown", (e) => {
+    // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U, Ctrl+S
+    if (
+      e.key === "F12" ||
+      (e.ctrlKey && e.shiftKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j" || e.key === "C" || e.key === "c")) ||
+      (e.metaKey && e.altKey && (e.key === "I" || e.key === "i" || e.key === "J" || e.key === "j" || e.key === "C" || e.key === "c")) ||
+      (e.ctrlKey && (e.key === "U" || e.key === "u" || e.key === "S" || e.key === "s")) ||
+      (e.metaKey && (e.key === "U" || e.key === "u" || e.key === "S" || e.key === "s"))
+    ) {
+      e.preventDefault();
+      showToast("Developer Tools are disabled for privacy.", true);
+      return false;
+    }
+
     // Win+Shift+S (Windows) or Cmd+Shift+3/4 (Mac) or PrintScreen
     if (
       (e.metaKey && e.shiftKey) || 
@@ -1042,6 +1055,13 @@
       togglePrivacyBlur(true);
       try { navigator.clipboard.writeText(''); } catch(err) {}
     }
+  });
+
+  // Block right-click (Context Menu) to prevent Inspect
+  document.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    showToast("Right-click is disabled for privacy.", true);
+    return false;
   });
   
   // Windows sometimes only fires keyup for PrtScr
