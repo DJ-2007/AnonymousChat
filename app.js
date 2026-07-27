@@ -52,6 +52,12 @@
   const nicknameInput       = $("#nickname-input");
   const btnSaveNickname     = $("#btn-save-nickname");
   const btnCancelNickname   = $("#btn-cancel-nickname");
+  
+  const customAlertModal    = $("#custom-alert-modal");
+  const customAlertTitle    = $("#custom-alert-title");
+  const customAlertMessage  = $("#custom-alert-message");
+  const btnCustomAlertCancel= $("#btn-custom-alert-cancel");
+  const btnCustomAlertConfirm=$("#btn-custom-alert-confirm");
 
   // Image Attach Elements
   const attachBtn           = $("#attach-btn");
@@ -237,7 +243,7 @@
     if (!window.crypto || !window.crypto.subtle) {
       splashStatus.textContent = "Error: Secure Context Required (HTTPS or Localhost)";
       splashStatus.style.color = "var(--red)";
-      alert("Your browser does not support Web Crypto API (requires HTTPS or Localhost). Chat will not work.");
+      showCustomAlert("Your browser does not support Web Crypto API (requires HTTPS or Localhost). Chat will not work.", "Security Warning");
       return;
     }
 
@@ -587,6 +593,42 @@
   }
 
   // ────────────────────────────────────────────────────────────
+  // UI Custom Alerts
+  // ────────────────────────────────────────────────────────────
+  let customAlertCallback = null;
+
+  function showCustomAlert(message, title = "Alert") {
+    customAlertTitle.textContent = title;
+    customAlertMessage.textContent = message;
+    btnCustomAlertCancel.classList.add("hidden");
+    
+    customAlertCallback = null;
+    customAlertModal.classList.remove("hidden");
+  }
+
+  function showCustomConfirm(message, callback, title = "Confirm") {
+    customAlertTitle.textContent = title;
+    customAlertMessage.textContent = message;
+    btnCustomAlertCancel.classList.remove("hidden");
+    
+    customAlertCallback = callback;
+    customAlertModal.classList.remove("hidden");
+  }
+
+  btnCustomAlertCancel.addEventListener("click", () => {
+    customAlertModal.classList.add("hidden");
+    customAlertCallback = null;
+  });
+
+  btnCustomAlertConfirm.addEventListener("click", () => {
+    customAlertModal.classList.add("hidden");
+    if (customAlertCallback) {
+      customAlertCallback();
+      customAlertCallback = null;
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────
   // UI State Management
   // ────────────────────────────────────────────────────────────
 
@@ -835,7 +877,7 @@
       // Remove button
       const removeBtn = item.querySelector('.btn-remove-friend');
       removeBtn.addEventListener("click", () => {
-        if (confirm("Are you sure you want to remove this friend?")) {
+        showCustomConfirm("Are you sure you want to remove this friend?", () => {
           removeFriend(f.code);
           renderFriendsList(statuses); // re-render immediately
           showToast("Friend removed.");
@@ -853,7 +895,7 @@
             btnAddFriend.style.background = "";
             btnAddFriend.style.borderColor = "";
           }
-        }
+        }, "Remove Friend");
       });
 
       friendsListContainer.appendChild(item);

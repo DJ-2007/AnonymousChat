@@ -280,6 +280,18 @@
     </div>
   </div>
 
+  <!-- ── Custom Alert Modal ── -->
+  <div class="modal-overlay hidden" id="custom-alert-modal" style="z-index: 9999;">
+    <div class="modal-content" style="text-align: center;">
+      <h3 style="margin-bottom: 10px;" id="custom-alert-title">Alert</h3>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;" id="custom-alert-message"></p>
+      <div style="display: flex; gap: 10px; justify-content: center;" id="custom-alert-buttons">
+        <button class="btn-action btn-end hidden" id="btn-custom-alert-cancel">Cancel</button>
+        <button class="btn-action" id="btn-custom-alert-confirm" style="color: var(--green); border-color: rgba(34,197,94,0.3);">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Nickname Modal ── -->
   <div class="modal-overlay hidden" id="nickname-modal">
     <div class="modal-content" style="text-align: center;">

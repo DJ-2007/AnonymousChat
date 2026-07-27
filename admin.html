@@ -94,6 +94,18 @@
     </main>
   </div>
 
+  <!-- ── Custom Admin Alert Modal ── -->
+  <div id="admin-alert-modal" class="overlay hidden" style="z-index: 2000;">
+    <div class="login-card" style="padding: 30px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+      <h3 id="admin-alert-title" style="margin-bottom: 12px; color: var(--text-primary); font-size: 1.4rem;">Alert</h3>
+      <p id="admin-alert-message" style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem;"></p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button id="btn-admin-alert-cancel" style="background: var(--bg-elevated); border: 1px solid var(--border-light); color: var(--text-primary);" class="hidden">Cancel</button>
+        <button id="btn-admin-alert-confirm" style="flex: 1;">OK</button>
+      </div>
+    </div>
+  </div>
+
   <script src="admin.js"></script>
 </body>
 </html>

@@ -20,8 +20,44 @@
   const broadcastMsgInput = $("#broadcast-msg");
   const btnDisconnectAll = $("#btn-disconnect-all");
 
+  const adminAlertModal = $("#admin-alert-modal");
+  const adminAlertTitle = $("#admin-alert-title");
+  const adminAlertMessage = $("#admin-alert-message");
+  const btnAdminAlertCancel = $("#btn-admin-alert-cancel");
+  const btnAdminAlertConfirm = $("#btn-admin-alert-confirm");
+
   let ws = null;
   let pingInterval = null;
+  let adminAlertCallback = null;
+
+  function showAdminAlert(message, title = "Alert") {
+    adminAlertTitle.textContent = title;
+    adminAlertMessage.textContent = message;
+    btnAdminAlertCancel.classList.add("hidden");
+    adminAlertCallback = null;
+    adminAlertModal.classList.remove("hidden");
+  }
+
+  function showAdminConfirm(message, callback, title = "Confirm") {
+    adminAlertTitle.textContent = title;
+    adminAlertMessage.textContent = message;
+    btnAdminAlertCancel.classList.remove("hidden");
+    adminAlertCallback = callback;
+    adminAlertModal.classList.remove("hidden");
+  }
+
+  btnAdminAlertCancel.addEventListener("click", () => {
+    adminAlertModal.classList.add("hidden");
+    adminAlertCallback = null;
+  });
+
+  btnAdminAlertConfirm.addEventListener("click", () => {
+    adminAlertModal.classList.add("hidden");
+    if (adminAlertCallback) {
+      adminAlertCallback();
+      adminAlertCallback = null;
+    }
+  });
 
   // Handle Login Form Submit
   loginForm.addEventListener("submit", (e) => {
@@ -52,7 +88,7 @@
     ws.onclose = () => {
       if (pingInterval) clearInterval(pingInterval);
       if (!dashboard.classList.contains("hidden")) {
-        alert("Disconnected from server. Please refresh to reconnect.");
+        showAdminAlert("Disconnected from server. Please refresh to reconnect.", "Connection Lost");
       }
     };
 
@@ -119,10 +155,11 @@
 
   // Handle Disconnect All
   btnDisconnectAll.addEventListener("click", () => {
-    const confirm = window.confirm("Are you SURE you want to disconnect ALL users? This action cannot be undone.");
-    if (confirm && ws) {
-      ws.send(JSON.stringify({ type: "admin_disconnect_all" }));
-    }
+    showAdminConfirm("Are you SURE you want to disconnect ALL users? This action cannot be undone.", () => {
+      if (ws) {
+        ws.send(JSON.stringify({ type: "admin_disconnect_all" }));
+      }
+    }, "Danger Zone");
   });
 
 })();
