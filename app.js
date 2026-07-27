@@ -44,6 +44,10 @@
   const incomingCallModal   = $("#incoming-call-modal");
   const btnRejectCall       = $("#btn-reject-call");
   const btnAcceptCall       = $("#btn-accept-call");
+  
+  const friendRequestModal  = $("#friend-request-modal");
+  const btnRejectFriendReq  = $("#btn-reject-friend-request");
+  const btnAcceptFriendReq  = $("#btn-accept-friend-request");
   const nicknameModal       = $("#nickname-modal");
   const nicknameInput       = $("#nickname-input");
   const btnSaveNickname     = $("#btn-save-nickname");
@@ -316,17 +320,27 @@
           btnAddFriend.style.background = "transparent";
           btnAddFriend.style.borderColor = "var(--border-light)";
         } else {
-          // Reset Add Friend button
-          btnAddFriend.disabled = false;
-          btnAddFriend.innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            Add Friend
-          `;
-          btnAddFriend.style.color = "";
-          btnAddFriend.style.background = "";
-          btnAddFriend.style.borderColor = "";
+          // Check if already friends
+          const friends = getSavedFriends();
+          if (friends.find(f => f.code === currentPartnerCode)) {
+            btnAddFriend.disabled = true;
+            btnAddFriend.textContent = "Friends!";
+            btnAddFriend.style.color = "var(--green)";
+            btnAddFriend.style.background = "rgba(34,197,94,0.1)";
+            btnAddFriend.style.borderColor = "rgba(34,197,94,0.3)";
+          } else {
+            // Reset Add Friend button
+            btnAddFriend.disabled = false;
+            btnAddFriend.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              Add Friend
+            `;
+            btnAddFriend.style.color = "";
+            btnAddFriend.style.background = "";
+            btnAddFriend.style.borderColor = "";
+          }
         }
 
         // Generate fresh keys for this session (forward secrecy)
@@ -440,6 +454,12 @@
       try {
         const decryptedStr = await decryptMessage(msg.encrypted, msg.iv, sharedKey);
         const parsed = JSON.parse(decryptedStr);
+        
+        if (parsed.payloadType) {
+          handleIncomingFriendSystemMessage(parsed);
+          return;
+        }
+
         text = parsed.text;
         imageUrl = parsed.image;
       } catch (e) {
@@ -458,6 +478,11 @@
       try {
         const decryptedStr = await decryptMessage(msg.encrypted, msg.iv, sharedKey);
         const parsed = JSON.parse(decryptedStr);
+        
+        if (parsed.payloadType) {
+          return;
+        }
+
         text = parsed.text;
         imageUrl = parsed.image;
       } catch (e) {
@@ -467,6 +492,56 @@
     if (!text && msg.preview) text = msg.preview;
     if (!text && !imageUrl) text = "[Message sent]";
     appendBubble(text, imageUrl, msg.timestamp, true);
+  }
+
+  // ────────────────────────────────────────────────────────────
+  // Friend System Peer-to-Peer
+  // ────────────────────────────────────────────────────────────
+  async function sendFriendSystemMessage(payloadType) {
+    if (!sharedKey || appState !== "paired") return;
+    try {
+      const payloadObj = {
+        payloadType: payloadType, // "friend_request", "friend_accept", "friend_reject"
+        friendCode: myFriendCode
+      };
+      const payloadStr = JSON.stringify(payloadObj);
+      const { ciphertext, iv } = await encryptMessage(payloadStr, sharedKey);
+      
+      wsSend({
+        type: "chat",
+        encrypted: ciphertext,
+        iv,
+        preview: "[System Event]",
+      });
+    } catch (err) {
+      console.error("System message encrypt error:", err);
+    }
+  }
+
+  function handleIncomingFriendSystemMessage(parsed) {
+    if (parsed.payloadType === "friend_request") {
+      friendRequestModal.classList.remove("hidden");
+    } else if (parsed.payloadType === "friend_accept") {
+      showToast("Stranger accepted your friend request!");
+      btnAddFriend.disabled = true;
+      btnAddFriend.textContent = "Friends!";
+      btnAddFriend.style.color = "var(--green)";
+      btnAddFriend.style.background = "rgba(34,197,94,0.1)";
+      btnAddFriend.style.borderColor = "rgba(34,197,94,0.3)";
+      
+      // Now ask for nickname
+      if (currentPartnerCode) {
+        const defaultName = `Stranger ${currentPartnerCode}`;
+        nicknameInput.value = defaultName;
+        nicknameModal.classList.remove("hidden");
+        nicknameInput.focus();
+        nicknameInput.select();
+      }
+    } else if (parsed.payloadType === "friend_reject") {
+      showToast("Stranger declined your friend request.");
+      btnAddFriend.disabled = false;
+      btnAddFriend.textContent = "Add Friend";
+    }
   }
 
   // ────────────────────────────────────────────────────────────
@@ -814,11 +889,27 @@
 
   btnAddFriend.addEventListener("click", () => {
     if (currentPartnerCode) {
+      sendFriendSystemMessage("friend_request");
+      btnAddFriend.disabled = true;
+      btnAddFriend.textContent = "Request Sent...";
+    }
+  });
+
+  btnRejectFriendReq.addEventListener("click", () => {
+    friendRequestModal.classList.add("hidden");
+    sendFriendSystemMessage("friend_reject");
+  });
+
+  btnAcceptFriendReq.addEventListener("click", () => {
+    friendRequestModal.classList.add("hidden");
+    sendFriendSystemMessage("friend_accept");
+    
+    if (currentPartnerCode) {
       const defaultName = `Stranger ${currentPartnerCode}`;
       nicknameInput.value = defaultName;
       nicknameModal.classList.remove("hidden");
       nicknameInput.focus();
-      nicknameInput.select(); // auto-select the text so they can easily over-write it
+      nicknameInput.select();
     }
   });
 
@@ -835,7 +926,7 @@
       nicknameModal.classList.add("hidden");
       
       btnAddFriend.disabled = true;
-      btnAddFriend.textContent = "Saved!";
+      btnAddFriend.textContent = "Friends!";
       btnAddFriend.style.color = "var(--green)";
       btnAddFriend.style.background = "rgba(34,197,94,0.1)";
       btnAddFriend.style.borderColor = "rgba(34,197,94,0.3)";
