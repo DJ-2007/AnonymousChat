@@ -502,8 +502,8 @@
         console.warn("Decrypt failed:", e.message);
       }
     }
-    if (!text && msg.preview) text = msg.preview;
-    if (!text && !imageUrl) text = "[Encrypted message — key mismatch]";
+    if (text === null && msg.preview) text = msg.preview;
+    if (text === null && !imageUrl) text = "[Encrypted message — key mismatch]";
     appendBubble(text, imageUrl, msg.timestamp, false, msgId, replyTo);
   }
 
@@ -535,8 +535,8 @@
         console.warn("Decrypt self failed:", e.message);
       }
     }
-    if (!text && msg.preview) text = msg.preview;
-    if (!text && !imageUrl) text = "[Message sent]";
+    if (text === null && msg.preview) text = msg.preview;
+    if (text === null && !imageUrl) text = "[Message sent]";
     appendBubble(text, imageUrl, msg.timestamp, true, msgId, replyTo);
   }
 
