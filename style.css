@@ -388,6 +388,7 @@ input, textarea {
   display: flex; flex-direction: column;
   max-width: 75%;
   animation: messageIn 0.35s var(--ease-out);
+  margin-bottom: 16px;
 }
 .msg-bubble-wrapper.is-self { align-self: flex-end; }
 .msg-bubble-wrapper.is-other { align-self: flex-start; }
@@ -795,7 +796,7 @@ input, textarea {
 
 .msg-reaction-badge {
   position: absolute;
-  bottom: -8px;
+  bottom: -12px;
   background: var(--surface-light);
   border: 1px solid var(--border-light);
   border-radius: 10px;
@@ -871,6 +872,10 @@ input, textarea {
   padding: 4px;
 }
 .btn-cancel-reply:hover { color: var(--red); }
+
+#btn-capture-camera:active {
+  transform: scale(0.9);
+}
 
 #btn-capture-camera:active {
   transform: scale(0.9);
