@@ -74,6 +74,13 @@
   const msgReplyBannerName  = $("#msg-reply-banner-name");
   const msgReplyBannerText  = $("#msg-reply-banner-text");
   const btnCancelReply      = $("#btn-cancel-reply");
+  
+  const customContextMenu   = $("#custom-context-menu");
+  const ctxReply            = $("#ctx-reply");
+  const ctxReact            = $("#ctx-react");
+  const emojiPickerModal    = $("#emoji-picker-modal");
+  const btnCloseEmoji       = $("#btn-close-emoji");
+  let contextTarget         = null;
 
   // ────────────────────────────────────────────────────────────
   // State
@@ -665,6 +672,121 @@
     btnCancelReply.addEventListener("click", cancelReply);
   }
 
+  // ── Context Menu Logic ──
+  function closeContextMenu() {
+    if(customContextMenu) customContextMenu.classList.add("hidden");
+  }
+
+  document.addEventListener("click", (e) => {
+    // Don't close if clicking inside the menu itself
+    if (e.target.closest(".context-menu")) return;
+    closeContextMenu();
+  });
+  
+  document.addEventListener("contextmenu", (e) => {
+    const bubble = e.target.closest(".msg-bubble-wrapper");
+    if (!bubble || !bubble.getAttribute("data-id")) {
+      closeContextMenu();
+      return;
+    }
+    e.preventDefault();
+    contextTarget = bubble;
+    
+    // Position menu
+    let x = e.clientX;
+    let y = e.clientY;
+    
+    customContextMenu.classList.remove("hidden");
+    
+    // Prevent menu from going off-screen
+    const rect = customContextMenu.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth) x -= rect.width;
+    if (y + rect.height > window.innerHeight) y -= rect.height;
+    
+    customContextMenu.style.left = `${x}px`;
+    customContextMenu.style.top = `${y}px`;
+  });
+
+  // Long press for mobile
+  let touchTimer = null;
+  document.addEventListener("touchstart", (e) => {
+    const bubble = e.target.closest(".msg-bubble-wrapper");
+    if (!bubble || !bubble.getAttribute("data-id")) return;
+    
+    // Clear previous timer
+    if (touchTimer) clearTimeout(touchTimer);
+    
+    touchTimer = setTimeout(() => {
+      contextTarget = bubble;
+      
+      const touch = e.touches[0];
+      let x = touch.clientX;
+      let y = touch.clientY;
+      
+      customContextMenu.classList.remove("hidden");
+      const rect = customContextMenu.getBoundingClientRect();
+      if (x + rect.width > window.innerWidth) x -= rect.width;
+      if (y + rect.height > window.innerHeight) y -= rect.height;
+      
+      customContextMenu.style.left = `${x}px`;
+      customContextMenu.style.top = `${y}px`;
+    }, 500);
+  }, { passive: true });
+
+  document.addEventListener("touchend", () => { if(touchTimer) clearTimeout(touchTimer); });
+  document.addEventListener("touchmove", () => { if(touchTimer) clearTimeout(touchTimer); }, { passive: true });
+  // Prevent context menu on mobile long press
+  window.oncontextmenu = function(event) {
+     if (event.target.closest(".msg-bubble-wrapper")) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+     }
+  };
+
+  // Handle Context Menu Actions
+  if (ctxReply) {
+    ctxReply.addEventListener("click", () => {
+      if (!contextTarget) return;
+      closeContextMenu();
+      const msgId = contextTarget.getAttribute("data-id");
+      const msgText = contextTarget.getAttribute("data-text");
+      const isSelf = contextTarget.getAttribute("data-self") === "true";
+      
+      replyingTo = { msgId, text: msgText, isSelf };
+      if (msgReplyBanner) {
+        msgReplyBanner.classList.remove("hidden");
+        msgReplyBannerName.textContent = `Replying to ${isSelf ? 'Yourself' : 'Stranger'}`;
+        msgReplyBannerText.textContent = msgText;
+      }
+      messageInput.focus();
+    });
+  }
+
+  if (ctxReact) {
+    ctxReact.addEventListener("click", () => {
+      if (!contextTarget) return;
+      closeContextMenu();
+      emojiPickerModal.classList.remove("hidden");
+    });
+  }
+
+  // Handle Emoji Picker
+  if (btnCloseEmoji) {
+    btnCloseEmoji.addEventListener("click", () => emojiPickerModal.classList.add("hidden"));
+  }
+  
+  const picker = document.querySelector('emoji-picker');
+  if (picker) {
+    picker.addEventListener('emoji-click', event => {
+      if (contextTarget) {
+        const id = contextTarget.getAttribute('data-id');
+        sendReaction(id, event.detail.unicode);
+      }
+      emojiPickerModal.classList.add("hidden");
+    });
+  }
+
   // ────────────────────────────────────────────────────────────
   // UI Custom Alerts
   // ────────────────────────────────────────────────────────────
@@ -806,7 +928,12 @@
   function appendBubble(text, imageUrl, timestamp, isSelf, msgId, replyTo) {
     const wrapper = document.createElement("div");
     wrapper.className = `msg-bubble-wrapper ${isSelf ? "is-self" : "is-other"}`;
-    if (msgId) wrapper.id = `msg-${msgId}`;
+    if (msgId) {
+      wrapper.id = `msg-${msgId}`;
+      wrapper.setAttribute("data-id", msgId);
+      wrapper.setAttribute("data-text", text || "Image");
+      wrapper.setAttribute("data-self", isSelf);
+    }
     
     const time = timestamp ? formatTime(timestamp) : "";
     const label = isSelf ? "You" : "Stranger";
@@ -828,53 +955,11 @@
       contentHtml += `<div class="msg-bubble">${escapeHtml(text)}</div>`;
     }
 
-    // Hover actions for Reply and Heart
-    let actionsHtml = "";
-    if (msgId) {
-      actionsHtml = `
-        <div class="msg-actions">
-          <button class="msg-action-btn btn-action-reply" title="Reply" data-id="${msgId}" data-text="${escapeHtml(text || 'Image')}" data-self="${isSelf}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
-          </button>
-          <button class="msg-action-btn btn-action-react" title="React" data-id="${msgId}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-          </button>
-        </div>
-      `;
-    }
-
     wrapper.innerHTML = `
-      ${actionsHtml}
       <div class="msg-nick">${label}</div>
       ${contentHtml}
       <div class="msg-time"><span class="msg-encrypted-badge">🔒</span></div>
     `;
-
-    // Attach event listeners for the new buttons
-    const btnReply = wrapper.querySelector('.btn-action-reply');
-    if (btnReply) {
-      btnReply.addEventListener('click', () => {
-        replyingTo = { 
-          msgId: btnReply.getAttribute('data-id'), 
-          text: btnReply.getAttribute('data-text'),
-          isSelf: btnReply.getAttribute('data-self') === 'true'
-        };
-        if(msgReplyBanner) {
-          msgReplyBanner.classList.remove("hidden");
-          msgReplyBannerName.textContent = `Replying to ${replyingTo.isSelf ? 'Yourself' : 'Stranger'}`;
-          msgReplyBannerText.textContent = replyingTo.text;
-        }
-        messageInput.focus();
-      });
-    }
-
-    const btnReact = wrapper.querySelector('.btn-action-react');
-    if (btnReact) {
-      btnReact.addEventListener('click', () => {
-        const id = btnReact.getAttribute('data-id');
-        sendReaction(id, "❤️");
-      });
-    }
 
     messagesEl.appendChild(wrapper);
     scrollToBottom();
