@@ -398,7 +398,7 @@
 
       // ── Echo of our own message ─────────────────────────
       case "chat_self":
-        await renderSelf(msg);
+        // Ignored. We now render optimistically instantly in sendMessage.
         break;
 
       // ── Partner disconnected ────────────────────────────
@@ -607,13 +607,25 @@
       return;
     }
 
+    // Capture state immediately for optimistic UI
+    const tempImage = pendingImage;
+    const tempReplyTo = replyingTo;
+    const msgId = window.crypto.randomUUID ? window.crypto.randomUUID() : Date.now().toString();
+
+    // Optimistically render instantly
+    appendBubble(trimmed, tempImage, Date.now(), true, msgId, tempReplyTo);
+    
+    // Clear image and reply state immediately
+    clearPendingImage();
+    cancelReply();
+
     try {
       // Create a JSON payload with both text and image
       const payloadObj = {
-        msgId: window.crypto.randomUUID ? window.crypto.randomUUID() : Date.now().toString(),
+        msgId: msgId,
         text: trimmed,
-        image: pendingImage,
-        replyTo: replyingTo
+        image: tempImage,
+        replyTo: tempReplyTo
       };
       const payloadStr = JSON.stringify(payloadObj);
 
@@ -625,10 +637,6 @@
         iv,
         preview: trimmed || "[Image]",
       });
-
-      // Clear image and reply state after sending
-      clearPendingImage();
-      cancelReply();
     } catch (err) {
       console.error("Encrypt error:", err);
       appendError("Failed to encrypt message.");
