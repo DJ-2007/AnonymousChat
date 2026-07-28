@@ -80,6 +80,14 @@
   const ctxReact            = $("#ctx-react");
   const emojiPickerModal    = $("#emoji-picker-modal");
   const btnCloseEmoji       = $("#btn-close-emoji");
+  
+  const cameraModal         = $("#camera-modal");
+  const btnCloseCamera      = $("#btn-close-camera");
+  const cameraVideo         = $("#camera-video");
+  const cameraCanvas        = $("#camera-canvas");
+  const btnCaptureCamera    = $("#btn-capture-camera");
+  let currentStream         = null;
+  
   let contextTarget         = null;
 
   // ────────────────────────────────────────────────────────────
@@ -1311,6 +1319,11 @@
 
   // Block right-click (Context Menu) to prevent Inspect
   document.addEventListener("contextmenu", (e) => {
+    // If they are right-clicking a message, let the custom context menu handle it quietly
+    if (e.target.closest(".msg-bubble-wrapper")) {
+      return false;
+    }
+    
     e.preventDefault();
     showToast("Right-click is disabled for privacy.", true);
     return false;
@@ -1360,17 +1373,66 @@
     fileGallery.click();
   });
 
-  attachCamera.addEventListener("click", () => {
-    fileCamera.click();
+  // Helper to stop camera
+  function stopCamera() {
+    if (currentStream) {
+      currentStream.getTracks().forEach(track => track.stop());
+      currentStream = null;
+    }
+    if (cameraModal) cameraModal.classList.add("hidden");
+    if (cameraVideo) cameraVideo.srcObject = null;
+  }
+
+  if (btnCloseCamera) btnCloseCamera.addEventListener("click", stopCamera);
+
+  attachCamera.addEventListener("click", async () => {
+    attachMenu.classList.add("hidden");
+    try {
+      currentStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
+      cameraVideo.srcObject = currentStream;
+      cameraModal.classList.remove("hidden");
+    } catch (err) {
+      console.error("Camera access denied or unavailable", err);
+      showToast("Could not access camera. Please check permissions.", true);
+    }
   });
 
-  fileGallery.addEventListener("change", (e) => {
+  if (btnCaptureCamera) {
+    btnCaptureCamera.addEventListener("click", () => {
+      if (!currentStream) return;
+      
+      const videoWidth = cameraVideo.videoWidth;
+      const videoHeight = cameraVideo.videoHeight;
+      cameraCanvas.width = videoWidth;
+      cameraCanvas.height = videoHeight;
+      
+      const ctx = cameraCanvas.getContext('2d');
+      ctx.drawImage(cameraVideo, 0, 0, videoWidth, videoHeight);
+      
+      const dataUrl = cameraCanvas.toDataURL('image/jpeg', 0.8);
+      
+      stopCamera();
+      
+      // Convert to file object
+      fetch(dataUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "camera-capture.jpg", { type: "image/jpeg" });
+          processImageFile(file);
+        });
+    });
+  }
+
+  // Fallback for fileCamera (if needed)
+  fileCamera.addEventListener("change", (e) => {
     if (e.target.files && e.target.files[0]) {
       processImageFile(e.target.files[0]);
     }
   });
-
-  fileCamera.addEventListener("change", (e) => {
+  
+  fileGallery.addEventListener("change", (e) => {
     if (e.target.files && e.target.files[0]) {
       processImageFile(e.target.files[0]);
     }

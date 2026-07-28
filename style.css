@@ -871,3 +871,7 @@ input, textarea {
   padding: 4px;
 }
 .btn-cancel-reply:hover { color: var(--red); }
+
+#btn-capture-camera:active {
+  transform: scale(0.9);
+}
