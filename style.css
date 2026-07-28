@@ -774,6 +774,49 @@ input, textarea {
   min-width: 120px;
 }
 
+.reaction-bar {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  gap: 2px;
+}
+
+.quick-react-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.15s, background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-react-btn:hover {
+  transform: scale(1.15);
+  background: var(--bg-main);
+}
+
+.quick-react-btn.btn-plus {
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  background: var(--bg-surface);
+}
+
+.quick-react-btn.btn-plus:hover {
+  color: var(--text-primary);
+  background: var(--border-light);
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: var(--border-light);
+  margin: 2px 0;
+}
+
 .context-menu-item {
   background: none;
   border: none;

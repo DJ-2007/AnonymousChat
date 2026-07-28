@@ -76,8 +76,8 @@
   const btnCancelReply      = $("#btn-cancel-reply");
   
   const customContextMenu   = $("#custom-context-menu");
+  const ctxReactionBar      = $("#ctx-reaction-bar");
   const ctxReply            = $("#ctx-reply");
-  const ctxReact            = $("#ctx-react");
   const emojiPickerModal    = $("#emoji-picker-modal");
   const btnCloseEmoji       = $("#btn-close-emoji");
   
@@ -775,13 +775,58 @@
     });
   }
 
-  if (ctxReact) {
-    ctxReact.addEventListener("click", () => {
-      if (!contextTarget) return;
-      closeContextMenu();
-      emojiPickerModal.classList.remove("hidden");
+  function getQuickReactions() {
+    try {
+      const stored = localStorage.getItem("quickReactions");
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return ['❤️', '😂', '😮', '😭', '😡'];
+  }
+  
+  function saveQuickReactions(arr) {
+    localStorage.setItem("quickReactions", JSON.stringify(arr));
+  }
+  
+  function renderReactionBar() {
+    if (!ctxReactionBar) return;
+    const reactions = getQuickReactions();
+    let html = '';
+    reactions.forEach(r => {
+      html += `<button class="quick-react-btn" data-emoji="${r}">${r}</button>`;
+    });
+    html += `<button class="quick-react-btn btn-plus" id="ctx-react-more">
+               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+             </button>`;
+    ctxReactionBar.innerHTML = html;
+    
+    ctxReactionBar.querySelectorAll('.quick-react-btn:not(.btn-plus)').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const emoji = e.currentTarget.getAttribute('data-emoji');
+        if (contextTarget) {
+           const id = contextTarget.getAttribute('data-id');
+           sendReaction(id, emoji);
+           
+           // Update recents
+           const currentReactions = getQuickReactions();
+           if (!currentReactions.includes(emoji)) {
+              currentReactions.pop();
+              currentReactions.unshift(emoji);
+              saveQuickReactions(currentReactions);
+              renderReactionBar();
+           }
+        }
+        closeContextMenu();
+      });
+    });
+    
+    ctxReactionBar.querySelector('#ctx-react-more').addEventListener('click', () => {
+       if (!contextTarget) return;
+       closeContextMenu();
+       emojiPickerModal.classList.remove("hidden");
     });
   }
+  
+  renderReactionBar();
 
   // Handle Emoji Picker
   if (btnCloseEmoji) {
@@ -791,9 +836,18 @@
   const picker = document.querySelector('emoji-picker');
   if (picker) {
     picker.addEventListener('emoji-click', event => {
+      const emoji = event.detail.unicode;
       if (contextTarget) {
         const id = contextTarget.getAttribute('data-id');
-        sendReaction(id, event.detail.unicode);
+        sendReaction(id, emoji);
+        
+        const reactions = getQuickReactions();
+        if (!reactions.includes(emoji)) {
+           reactions.pop();
+           reactions.unshift(emoji);
+           saveQuickReactions(reactions);
+           renderReactionBar();
+        }
       }
       emojiPickerModal.classList.add("hidden");
     });
