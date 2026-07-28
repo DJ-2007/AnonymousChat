@@ -645,6 +645,10 @@
 
   async function sendReaction(targetId, reactionType) {
     if (appState !== "paired" || !sharedKey || !ws || ws.readyState !== WebSocket.OPEN) return;
+    
+    // Optimistic UI: display reaction locally instantly
+    handleIncomingReaction(targetId, reactionType, true);
+    
     try {
       const payloadObj = {
         payloadType: "reaction",
