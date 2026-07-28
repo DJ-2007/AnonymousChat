@@ -693,14 +693,16 @@
     
     let x, y;
     if (bubble.classList.contains("is-self")) {
-      x = bRect.right - mRect.width;
+      x = bRect.left - mRect.width - 12; // To the left of my messages
     } else {
-      x = bRect.left;
+      x = bRect.right + 12; // To the right of their messages
     }
     
-    y = bRect.bottom + 12;
-    if (y + mRect.height > window.innerHeight) {
-      y = bRect.top - mRect.height - 12;
+    // Center vertically with the bubble
+    y = bRect.top + (bRect.height / 2) - (mRect.height / 2);
+    
+    if (y + mRect.height > window.innerHeight - 10) {
+      y = window.innerHeight - mRect.height - 10;
     }
     
     if (x < 10) x = 10;
