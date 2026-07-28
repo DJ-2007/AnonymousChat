@@ -181,7 +181,20 @@
             <img id="image-preview-img" src="" alt="Preview" />
             <button type="button" class="image-preview-remove" id="image-preview-remove" aria-label="Remove image">✕</button>
           </div>
-          <span class="image-preview-label">Image ready to send</span>
+        </div>
+
+        <!-- Reply banner -->
+        <div class="msg-reply-banner hidden" id="msg-reply-banner">
+          <div class="msg-reply-banner-content">
+            <span class="msg-reply-banner-name" id="msg-reply-banner-name">Replying to Stranger</span>
+            <span class="msg-reply-banner-text" id="msg-reply-banner-text">...</span>
+          </div>
+          <button class="btn-cancel-reply" id="btn-cancel-reply">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
 
         <form class="chat-form" id="chat-form">

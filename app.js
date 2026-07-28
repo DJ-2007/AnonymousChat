@@ -70,11 +70,16 @@
   const imagePreviewImg     = $("#image-preview-img");
   const imagePreviewRemove  = $("#image-preview-remove");
   const typingIndicator     = $("#typing-indicator");
+  const msgReplyBanner      = $("#msg-reply-banner");
+  const msgReplyBannerName  = $("#msg-reply-banner-name");
+  const msgReplyBannerText  = $("#msg-reply-banner-text");
+  const btnCancelReply      = $("#btn-cancel-reply");
 
   // ────────────────────────────────────────────────────────────
   // State
   // ────────────────────────────────────────────────────────────
   let ws             = null;
+  let replyingTo     = null; // { msgId, text }
   let myKeyPair      = null;   // Current ECDH key pair
   let myPublicKeyJwk = null;   // Exported public key (JWK)
   let sharedKey      = null;   // Derived AES-256-GCM key
@@ -456,11 +461,19 @@
   async function renderIncoming(msg) {
     let text = null;
     let imageUrl = null;
+    let msgId = null;
+    let replyTo = null;
+
     if (sharedKey && msg.encrypted && msg.iv) {
       try {
         const decryptedStr = await decryptMessage(msg.encrypted, msg.iv, sharedKey);
         const parsed = JSON.parse(decryptedStr);
         
+        if (parsed.payloadType === "reaction") {
+          handleIncomingReaction(parsed.targetId, parsed.reaction, false);
+          return;
+        }
+
         if (parsed.payloadType) {
           handleIncomingFriendSystemMessage(parsed);
           return;
@@ -468,36 +481,48 @@
 
         text = parsed.text;
         imageUrl = parsed.image;
+        msgId = parsed.msgId;
+        replyTo = parsed.replyTo;
       } catch (e) {
         console.warn("Decrypt failed:", e.message);
       }
     }
     if (!text && msg.preview) text = msg.preview;
     if (!text && !imageUrl) text = "[Encrypted message — key mismatch]";
-    appendBubble(text, imageUrl, msg.timestamp, false);
+    appendBubble(text, imageUrl, msg.timestamp, false, msgId, replyTo);
   }
 
   async function renderSelf(msg) {
     let text = null;
     let imageUrl = null;
+    let msgId = null;
+    let replyTo = null;
+
     if (sharedKey && msg.encrypted && msg.iv) {
       try {
         const decryptedStr = await decryptMessage(msg.encrypted, msg.iv, sharedKey);
         const parsed = JSON.parse(decryptedStr);
         
+        if (parsed.payloadType === "reaction") {
+          handleIncomingReaction(parsed.targetId, parsed.reaction, true);
+          return;
+        }
+
         if (parsed.payloadType) {
           return;
         }
 
         text = parsed.text;
         imageUrl = parsed.image;
+        msgId = parsed.msgId;
+        replyTo = parsed.replyTo;
       } catch (e) {
         console.warn("Decrypt self failed:", e.message);
       }
     }
     if (!text && msg.preview) text = msg.preview;
     if (!text && !imageUrl) text = "[Message sent]";
-    appendBubble(text, imageUrl, msg.timestamp, true);
+    appendBubble(text, imageUrl, msg.timestamp, true, msgId, replyTo);
   }
 
   // ────────────────────────────────────────────────────────────
@@ -570,8 +595,10 @@
     try {
       // Create a JSON payload with both text and image
       const payloadObj = {
+        msgId: window.crypto.randomUUID ? window.crypto.randomUUID() : Date.now().toString(),
         text: trimmed,
-        image: pendingImage
+        image: pendingImage,
+        replyTo: replyingTo
       };
       const payloadStr = JSON.stringify(payloadObj);
 
@@ -584,12 +611,58 @@
         preview: trimmed || "[Image]",
       });
 
-      // Clear image state after sending
+      // Clear image and reply state after sending
       clearPendingImage();
+      cancelReply();
     } catch (err) {
       console.error("Encrypt error:", err);
       appendError("Failed to encrypt message.");
     }
+  }
+
+  async function sendReaction(targetId, reactionType) {
+    if (appState !== "paired" || !sharedKey || !ws || ws.readyState !== WebSocket.OPEN) return;
+    try {
+      const payloadObj = {
+        payloadType: "reaction",
+        targetId: targetId,
+        reaction: reactionType
+      };
+      const payloadStr = JSON.stringify(payloadObj);
+      const { ciphertext, iv } = await encryptMessage(payloadStr, sharedKey);
+      
+      wsSend({
+        type: "chat",
+        encrypted: ciphertext,
+        iv,
+        preview: "[Reaction]",
+      });
+    } catch (err) {
+      console.error("Reaction encrypt error:", err);
+    }
+  }
+
+  function handleIncomingReaction(targetId, reactionType, isSelf) {
+    const wrapper = document.getElementById(`msg-${targetId}`);
+    if (!wrapper) return;
+    
+    // Remove existing reaction if any
+    const existing = wrapper.querySelector(".msg-reaction-badge");
+    if (existing) existing.remove();
+
+    const badge = document.createElement("div");
+    badge.className = "msg-reaction-badge";
+    badge.textContent = reactionType;
+    wrapper.appendChild(badge);
+  }
+
+  function cancelReply() {
+    replyingTo = null;
+    if(msgReplyBanner) msgReplyBanner.classList.add("hidden");
+  }
+
+  if(btnCancelReply) {
+    btnCancelReply.addEventListener("click", cancelReply);
   }
 
   // ────────────────────────────────────────────────────────────
@@ -730,26 +803,79 @@
     }
   }
 
-  function appendBubble(text, imageUrl, timestamp, isSelf) {
+  function appendBubble(text, imageUrl, timestamp, isSelf, msgId, replyTo) {
     const wrapper = document.createElement("div");
     wrapper.className = `msg-bubble-wrapper ${isSelf ? "is-self" : "is-other"}`;
+    if (msgId) wrapper.id = `msg-${msgId}`;
+    
     const time = timestamp ? formatTime(timestamp) : "";
     const label = isSelf ? "You" : "Stranger";
 
     let contentHtml = "";
+
+    // If this is a reply to another message
+    if (replyTo && replyTo.text) {
+      contentHtml += `<div class="msg-reply-context">
+        <div style="font-weight:600; font-size:0.75rem; color:var(--purple);">${replyTo.isSelf ? 'You' : 'Stranger'}</div>
+        <div>${escapeHtml(replyTo.text)}</div>
+      </div>`;
+    }
+
     if (imageUrl) {
-      // Create img tag for base64 image
       contentHtml += `<img src="${imageUrl}" class="msg-image" alt="Shared photo" />`;
     }
     if (text) {
       contentHtml += `<div class="msg-bubble">${escapeHtml(text)}</div>`;
     }
 
+    // Hover actions for Reply and Heart
+    let actionsHtml = "";
+    if (msgId) {
+      actionsHtml = `
+        <div class="msg-actions">
+          <button class="msg-action-btn btn-action-reply" title="Reply" data-id="${msgId}" data-text="${escapeHtml(text || 'Image')}" data-self="${isSelf}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"></polyline><path d="M20 18v-2a4 4 0 0 0-4-4H4"></path></svg>
+          </button>
+          <button class="msg-action-btn btn-action-react" title="React" data-id="${msgId}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          </button>
+        </div>
+      `;
+    }
+
     wrapper.innerHTML = `
+      ${actionsHtml}
       <div class="msg-nick">${label}</div>
       ${contentHtml}
       <div class="msg-time">${time} <span class="msg-encrypted-badge">🔒</span></div>
     `;
+
+    // Attach event listeners for the new buttons
+    const btnReply = wrapper.querySelector('.btn-action-reply');
+    if (btnReply) {
+      btnReply.addEventListener('click', () => {
+        replyingTo = { 
+          msgId: btnReply.getAttribute('data-id'), 
+          text: btnReply.getAttribute('data-text'),
+          isSelf: btnReply.getAttribute('data-self') === 'true'
+        };
+        if(msgReplyBanner) {
+          msgReplyBanner.classList.remove("hidden");
+          msgReplyBannerName.textContent = `Replying to ${replyingTo.isSelf ? 'Yourself' : 'Stranger'}`;
+          msgReplyBannerText.textContent = replyingTo.text;
+        }
+        messageInput.focus();
+      });
+    }
+
+    const btnReact = wrapper.querySelector('.btn-action-react');
+    if (btnReact) {
+      btnReact.addEventListener('click', () => {
+        const id = btnReact.getAttribute('data-id');
+        sendReaction(id, "❤️");
+      });
+    }
+
     messagesEl.appendChild(wrapper);
     scrollToBottom();
   }
