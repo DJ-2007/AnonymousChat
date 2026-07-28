@@ -388,7 +388,7 @@ input, textarea {
   display: flex; flex-direction: column;
   max-width: 75%;
   animation: messageIn 0.35s var(--ease-out);
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 .msg-bubble-wrapper.is-self { align-self: flex-end; }
 .msg-bubble-wrapper.is-other { align-self: flex-start; }
@@ -796,7 +796,7 @@ input, textarea {
 
 .msg-reaction-badge {
   position: absolute;
-  bottom: -12px;
+  bottom: -20px;
   background: var(--surface-light);
   border: 1px solid var(--border-light);
   border-radius: 10px;
