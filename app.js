@@ -958,7 +958,6 @@
     wrapper.innerHTML = `
       <div class="msg-nick">${label}</div>
       ${contentHtml}
-      <div class="msg-time"><span class="msg-encrypted-badge">🔒</span></div>
     `;
 
     messagesEl.appendChild(wrapper);
