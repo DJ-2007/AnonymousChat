@@ -406,6 +406,12 @@
         appState = "idle";
         sharedKey = null;
         
+        // Update connection status immediately
+        if (connectionStatus) {
+          connectionStatus.textContent = "Stranger Disconnected";
+          connectionStatus.parentElement.style.color = "var(--red)";
+        }
+        
         // STRICT EPHEMERALITY: Instantly destroy all photos when partner leaves
         document.querySelectorAll('.msg-image').forEach(img => img.remove());
         
@@ -922,6 +928,10 @@
     setStatus("Connected to stranger", "paired");
     enableInput();
     messageInput.focus();
+    if (connectionStatus) {
+      connectionStatus.textContent = "End-to-End Encrypted";
+      connectionStatus.parentElement.style.color = "";
+    }
   }
 
   function showIdle() {

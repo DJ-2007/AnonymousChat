@@ -203,10 +203,29 @@ function unpair(ws) {
   return partner;
 }
 
+// Setup heartbeats to instantly detect dropped connections
+const pingInterval = setInterval(() => {
+  for (const [ws, data] of clients) {
+    if (ws.isAlive === false) {
+      ws.terminate();
+      continue;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  }
+}, 5000);
+
+wss.on("close", () => clearInterval(pingInterval));
+
 // ────────────────────────────────────────────────────────────
 // Connection handler
 // ────────────────────────────────────────────────────────────
 wss.on("connection", (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
+
   const id = nextId++;
   clients.set(ws, { 
     id, timestamps: [], partner: null, state: "idle", 
