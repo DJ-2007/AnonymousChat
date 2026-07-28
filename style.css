@@ -771,13 +771,14 @@ input, textarea {
   border: 1px solid var(--border-light);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s ease 0.4s;
   z-index: 10;
 }
 
 .msg-bubble-wrapper:hover .msg-actions {
   opacity: 1;
   pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .is-self .msg-actions {

@@ -847,7 +847,7 @@
       ${actionsHtml}
       <div class="msg-nick">${label}</div>
       ${contentHtml}
-      <div class="msg-time">${time} <span class="msg-encrypted-badge">🔒</span></div>
+      <div class="msg-time"><span class="msg-encrypted-badge">🔒</span></div>
     `;
 
     // Attach event listeners for the new buttons
