@@ -685,6 +685,32 @@
     if(customContextMenu) customContextMenu.classList.add("hidden");
   }
 
+  function positionContextMenuFixed(bubble) {
+    customContextMenu.classList.remove("hidden");
+    const mRect = customContextMenu.getBoundingClientRect();
+    const innerBubble = bubble.querySelector(".msg-bubble") || bubble;
+    const bRect = innerBubble.getBoundingClientRect();
+    
+    let x, y;
+    if (bubble.classList.contains("is-self")) {
+      x = bRect.right - mRect.width;
+    } else {
+      x = bRect.left;
+    }
+    
+    y = bRect.bottom + 12;
+    if (y + mRect.height > window.innerHeight) {
+      y = bRect.top - mRect.height - 12;
+    }
+    
+    if (x < 10) x = 10;
+    if (x + mRect.width > window.innerWidth - 10) x = window.innerWidth - mRect.width - 10;
+    if (y < 10) y = 10;
+    
+    customContextMenu.style.left = `${x}px`;
+    customContextMenu.style.top = `${y}px`;
+  }
+
   document.addEventListener("click", (e) => {
     // Don't close if clicking inside the menu itself
     if (e.target.closest(".context-menu")) return;
@@ -699,20 +725,7 @@
     }
     e.preventDefault();
     contextTarget = bubble;
-    
-    // Position menu
-    let x = e.clientX;
-    let y = e.clientY;
-    
-    customContextMenu.classList.remove("hidden");
-    
-    // Prevent menu from going off-screen
-    const rect = customContextMenu.getBoundingClientRect();
-    if (x + rect.width > window.innerWidth) x -= rect.width;
-    if (y + rect.height > window.innerHeight) y -= rect.height;
-    
-    customContextMenu.style.left = `${x}px`;
-    customContextMenu.style.top = `${y}px`;
+    positionContextMenuFixed(bubble);
   });
 
   // Long press for mobile
@@ -726,18 +739,7 @@
     
     touchTimer = setTimeout(() => {
       contextTarget = bubble;
-      
-      const touch = e.touches[0];
-      let x = touch.clientX;
-      let y = touch.clientY;
-      
-      customContextMenu.classList.remove("hidden");
-      const rect = customContextMenu.getBoundingClientRect();
-      if (x + rect.width > window.innerWidth) x -= rect.width;
-      if (y + rect.height > window.innerHeight) y -= rect.height;
-      
-      customContextMenu.style.left = `${x}px`;
-      customContextMenu.style.top = `${y}px`;
+      positionContextMenuFixed(bubble);
     }, 500);
   }, { passive: true });
 
