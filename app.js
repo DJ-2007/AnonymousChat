@@ -259,6 +259,8 @@
   // Init
   // ────────────────────────────────────────────────────────────
   async function init() {
+    requestNotificationPermission();
+
     // Basic browser checks
     if (!window.crypto || !window.crypto.subtle) {
       splashStatus.textContent = "Error: Secure Context Required (HTTPS or Localhost)";
@@ -1599,6 +1601,7 @@
 
   // New Chat button (idle screen)
   btnNewChat.addEventListener("click", () => {
+    requestNotificationPermission();
     wsSend({ type: "find_partner" });
     appState = "searching";
     showSearching();
@@ -1608,10 +1611,14 @@
   // ────────────────────────────────────────────────────────────
   let unreadCount = 0;
 
-  document.addEventListener("click", () => {
+  function requestNotificationPermission() {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
+  }
+
+  document.addEventListener("click", () => {
+    requestNotificationPermission();
   }, { once: true });
 
   window.addEventListener("focus", () => { unreadCount = 0; });
