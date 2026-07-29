@@ -429,6 +429,7 @@
       case "incoming_call":
         incomingCallCode = msg.callerCode;
         incomingCallModal.classList.remove("hidden");
+        notifyUser("call");
         break;
 
       case "call_ringing":
@@ -511,6 +512,7 @@
     if (text === null && msg.preview) text = msg.preview;
     if (text === null && !imageUrl) text = "[Encrypted message — key mismatch]";
     appendBubble(text, imageUrl, msg.timestamp, false, msgId, replyTo);
+    notifyUser("message");
   }
 
   async function renderSelf(msg) {
@@ -1601,6 +1603,47 @@
     appState = "searching";
     showSearching();
   });
+  // ────────────────────────────────────────────────────────────
+  // Notifications
+  // ────────────────────────────────────────────────────────────
+  let unreadCount = 0;
+
+  document.addEventListener("click", () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, { once: true });
+
+  window.addEventListener("focus", () => { unreadCount = 0; });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === 'visible') unreadCount = 0;
+  });
+
+  function notifyUser(type) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (document.visibilityState === 'visible' && document.hasFocus()) return;
+
+    let body = "";
+    if (type === "call") {
+      body = "Incoming call from a stranger";
+    } else {
+      unreadCount++;
+      if (unreadCount === 1) body = "1 new message";
+      else if (unreadCount <= 4) body = `${unreadCount} new messages`;
+      else body = "4+ new messages";
+    }
+
+    const notification = new Notification("AnonymousChat", {
+      body: body,
+      tag: "chat-notification"
+    });
+
+    notification.onclick = function() {
+      window.focus();
+      this.close();
+    };
+  }
+
   // ────────────────────────────────────────────────────────────
   // Boot
   // ────────────────────────────────────────────────────────────
